@@ -1,0 +1,11 @@
+# Ignore environment secrets
+.env
+*.env
+
+# Ignore credentials and certificates
+*.pem
+*.key
+.htpasswd
+secrets/
+typemill-cms/secrets/
+

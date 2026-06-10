@@ -1,0 +1,38 @@
+services:
+  typemill:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: typemill
+    restart: unless-stopped
+
+    ports:
+      - "80:80"
+      - "443:443"
+
+    volumes:
+      # Configuration files (Nginx, PHP-FPM, supervisord)
+      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./config/conf.d/typemill_ssl_auth-nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./config/fpm-pool.conf:${PHP_INI_DIR}/php-fpm.d/www.conf:ro
+      - ./config/php.ini:${PHP_INI_DIR}/conf.d/custom.ini:ro
+      - ./config/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf:ro
+
+      # Security credentials 
+      - ./secrets/.htpasswd:/etc/nginx/.htpasswd:ro
+      - ./secrets/ssl_certs:/etc/ssl/certs:ro
+
+      # Additional markdown-dump script
+      - ./markdown-dump:/var/www/html/markdown-dump
+
+      # Typemill persistent storage data
+      - ${TYPEMILL_MOUNTS}/content:/var/www/html/content
+      - ${TYPEMILL_MOUNTS}/media:/var/www/html/media
+      - ${TYPEMILL_MOUNTS}/settings:/var/www/html/settings
+      - ${TYPEMILL_MOUNTS}/cache:/var/www/html/cache
+      - ${TYPEMILL_MOUNTS}/plugins:/var/www/html/plugins
+      - ${TYPEMILL_MOUNTS}/data:/var/www/html/data
+      - ${TYPEMILL_MOUNTS}/themes:/var/www/html/themes
+
+    # Force the container to run under the nobody user
+    user: "nobody:nobody"
