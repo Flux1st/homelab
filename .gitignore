@@ -6,6 +6,9 @@
 *.pem
 *.key
 .htpasswd
-secrets/
-typemill-cms/secrets/
+secrets/*
+typemill-cms/secrets/*
+
+# But try showing the empty directory structure
+!typemill-cms/secrets/ssl_certs/.gitkeep
 
