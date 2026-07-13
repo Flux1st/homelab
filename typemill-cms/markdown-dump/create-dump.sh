@@ -17,6 +17,9 @@ contentPath="/var/www/html/content/"
 redactedList="${contentPath}redacted.list"
 dumpFile="/tmp/whole_site.md"
 
+getDateTime() {
+        TZ='Europe/Helsinki' date +"%d.%m.%Y %T"
+}
 
 # Sivuston markdown-tiedostojen listaaminen oikeassa järjestyksessä väliaikaiseen tiedostoon
 find "$contentPath" -type f -name "*md" | awk '{ key=$0; gsub(/[0-9]/, "~&", key); printf "%s\t%s\n", key, $0 }' | LC_ALL=C sort | cut -f 2- > filelist.tmp
@@ -31,6 +34,8 @@ tiedostoLista=$(cat filelist.tmp | sed "s|$contentPath\(.*\)|\1  |")
 
 tee $dumpFile > /dev/null <<EOF
 # Porfoliosivuston kooste
+
+Luotu: `getDateTime`
 
 Tässä dynaamisesti generoituvassa koosteessa on yhdistetty portfoliosivuston koko tekstisisältö, eli markdown-tiedostot valikon mukaisessa järjestyksessä:
 

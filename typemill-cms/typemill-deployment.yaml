@@ -1,15 +1,11 @@
 services:
   typemill:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    platforms:
-        - linux/amd64
-        - linux/arm64
-    # Building to GitHub Packages Container Registry
+    # Pull image from GitHub Packages Container Registry
     image: ghcr.io/flux1st/typemill-cms:latest
     container_name: typemill
     restart: unless-stopped
+    environment:
+        - TZ=Europe/Helsinki
 
     ports:
       - "80:80"

@@ -9,6 +9,9 @@
 secrets/*
 typemill-cms/secrets/*
 
+# Ignore possible undeleted junk
+.swp
+
 # But try showing the empty directory structure
 !typemill-cms/secrets/ssl_certs/.gitkeep
 

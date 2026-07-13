@@ -1,12 +1,10 @@
 #!/bin/sh
 
-#########################################################
-# Portfoliosivuston muutoslokin päivittämisen helpottaja
-# - lisää lokiin päivämääräleiman ja avaa editorin
-#########################################################
+# Muutoslokin sijainti. Tiedoston omistajuus määritelty nobody:nogroup
+# Typemill pyörii käyttäjänä nobody, ja oma paikallinen käyttäjä lisätty ryhmään nogroup
+muutosLokiSivu="/absoluuttinen/polku/lokitiedostoon.md"
 
-# Muutoslokin sijainti ja merkkijono, jonka jälkeen uusi lokimerkintä lisätään merkintöjen jonon alkuun
-muutosLokiSivu="/absoluuttinen/polku/lokisivulle.md"
+# Merkkijono, jonka jälkeen uusi lokimerkintä lisätään
 lokiErotin="-----"
 
 # Editorivaihtoehtoina nano ja vim, joissa lokimerkintä aukeaa suoraan editoitavaksi
@@ -16,28 +14,16 @@ getDateTime() {
         TZ='Europe/Helsinki' date +"%d.%m.%Y"  
 }
 
-if [ ! -f "$muutosLokiSivu" ] ; then
-        echo "Määritettyä lokisivua $muutosLokiSivu ei ole olemassa!" >&2
-        exit 1
-fi
-
-if [ ! -r "$muutosLokiSivu" ] ; then
-        echo "Lokisivu $muutosLokiSivu ei ole luettava!" >&2
-        exit 1
-fi
-
-if [ ! -w "$muutosLokiSivu" ] ; then
-        echo "Lokisivu $muutosLokiSivu ei ole kirjoitettava!" >&2
-        exit 1
-fi
-
-
 # Alustetaan uusi merkintä aikaleimalla
 uudenAlku="**`getDateTime`** -- "
 
 # Muutosloki-sivulla varsinainen loki erotetaan alustuskappaleesta merkkijonolla $lokiErotin.
-# sed lisää sen jälkeen tiedostoon rivinvaihdon ja uuden merkinnän aloittavan aikaleiman
-sed -i "/$lokiErotin/a\ \n$uudenAlku" $muutosLokiSivu
+# sed lisää sen jälkeen tekstiin rivinvaihdon ja uuden merkinnän aloittavan aikaleiman.
+# Tiedostoon tallennus toteutettu välivaiheen kautta, jotta tiedoston omistajuus säilyy, ja Typemill voi edelleen kirjoittaa samaan tiedostoon
+# ('sed -i' loisi väliaikaisen tiedoston, joka muuttaisi lopulta omistajuuden)
+
+uusiTeksti=$(sed "/$lokiErotin/a\ \n$uudenAlku" $muutosLokiSivu)
+printf '%s\n' "$uusiTeksti" > $muutosLokiSivu
 
 # Haetaan lokiosion aloittavan poikittaisen viivan rivinumero ja lisätään kahdella, jotta päästään uuden merkinnän riville. 
 # Vaihtoehtoinen versio, jonka tein ensin: rivi=$(( $(grep -m 1 -n "\-\-\-\-\-" $muutosLokiSivu | cut -d : -f 1) + 2 ))

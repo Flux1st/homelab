@@ -1,6 +1,8 @@
 #!/bin/sh
 
-configFile="$PWD/is-site-up.env"
+configFile="/path/to/env/file/is-site-up.env"
+# skripti set-monitoring-status.sh asettaa statuksen tähän tiedostoon:
+statusFile="/path/to/status/file/monitoring_status"
 
 if [ ! -f "$configFile" ] ; then
 	echo "Määrittelytiedosto $configFile puuttuu!" >&2
@@ -14,6 +16,12 @@ fi
 
 . $configFile
 
+# oletuksena on, että monitorointi on päällä, joten jos statusFile puuttuu tai se on tyhjä, asetetaan se "on" tilaan
+
+if [ ! -f "$statusFile" ] || [ ! -s "$statusFile" ] ; then
+	echo "on" > "$statusFile"
+fi
+
 #
 # FUNKTIOT
 #
@@ -25,13 +33,13 @@ getDateTime() {
 addToLog() {
 	# argumenttina $1 logattavan viestin sisältö
 	if [ "$1" != "" ] ; then
-		echo "`getDateTime` --- $1" >> $logFile
+		echo "`getDateTime`\t$1" >> $logFile
 	fi
 }
 
 sendToTelegram() {
 	# Lähettää viestin Telegram-botin kautta
-	# tuottaa lokirivin viestin lähettämisen onnistumisesta
+	# tuottaa palautusarvona lokirivin viestin lähettämisen onnistumisesta
 
 	# argumenttina lähetettävä viesti
 	message=$1
@@ -59,35 +67,41 @@ sendToTelegram() {
 }
 
 
-#
-# SKRIPTIN RUNKO: haetaan sivuston etusivu ja analysoidaan mahdolliset virheet
-#
+main () {
+	# Pääfunktio: haetaan sivuston etusivu ja analysoidaan mahdolliset virheet
 
-curlOutput=$(curl --no-progress-meter --user $user:$pw https://$domain/ 2>&1)
+	curlOutput=$(curl --no-progress-meter --user $user:$pw https://$domain/ 2>&1)
 
-if [ "$?" -ne "0" ] ; then
-	# curl palauttaa virheviestin
-	message="Ongelma! $curlOutput"
-	telegramResponse=$(sendToTelegram "$message")
-else
-	# curl ok, eritellään HTML title-sisältö, joka sisältää joko sisältösivun otsikon tai virheviestin
-	title=$(echo "$curlOutput" | grep -o '<title>.*</title>' | sed 's|.*<title>\(.*\)</title>|\1|')
-
-	# sivusto mitä todennäköisimmin toimii, jos näkyy Aloitus-sivun otsikko
-	frontPageIsServed=$(echo $title | grep "$frontPageTitleString")
-
-	# ...ja sulkeva html-tägi
-	fullPageIsShown=$(echo $curlOutput | grep -i "</html>")
-
-	if [ "$frontPageIsServed" ] && [ "$fullPageIsShown" ] ; then
-		message="Kaikki OK!"
-	else
-		message="Ongelma! $title"
+	if [ "$?" -ne "0" ] ; then
+		# curl palauttaa virheviestin
+		message="Ongelma! $curlOutput"
 		telegramResponse=$(sendToTelegram "$message")
+	else
+		# curl ok, eritellään HTML title-sisältö, joka sisältää joko sisältösivun otsikon tai virheviestin
+		title=$(echo "$curlOutput" | grep -o '<title>.*</title>' | sed 's|.*<title>\(.*\)</title>|\1|')
+
+		# sivusto mitä todennäköisimmin toimii, jos näkyy Aloitus-sivun otsikko
+		frontPageIsServed=$(echo $title | grep "$frontPageTitleString")
+
+		# ...ja sulkeva html-tägi
+		fullPageIsShown=$(echo $curlOutput | grep -i "</html>")
+
+		if [ "$frontPageIsServed" ] && [ "$fullPageIsShown" ] ; then
+			message="Kaikki OK!"
+		else
+			message="Ongelma! $title"
+			telegramResponse=$(sendToTelegram "$message")
+		fi
 	fi
-fi
 
-addToLog "$message"
-addToLog "$telegramResponse"
+	addToLog "$message"
+	addToLog "$telegramResponse"
+}
 
+#
+# SKRIPTIN RUNKO: tarkistetaan monitoroinnin status ja suoritetaan pääfunktio, jos status asetettu "on"
+#
 
+read -r monitoringStatus < "$statusFile"
+
+[ "$monitoringStatus" = "on" ] && main
